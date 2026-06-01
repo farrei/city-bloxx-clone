@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Bloxx Clone</title>
+    <style>
+        body { margin: 0; background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; }
+        canvas { background: #87CEEB; border: 4px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #ui { position: absolute; top: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px #000; pointer-events: none; }
+        button { pointer-events: auto; padding: 10px 20px; font-size: 16px; margin-top: 10px; background: #FF6B6B; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>🏙️ City Bloxx Clone</h1>
+        <p>Altura da torre: <span id="score">0</span> blocos</p>
+        <p>Clique ou toque para soltar o bloco!</p>
+        <button onclick="restartGame()">Reiniciar</button>
+    </div>
+    <canvas id="canvas" width="400" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let score = 0;
+        let isGameOver = false;
+        let blocks = [];
+        let currentBlock = { x: 160, y: 80, width: 80, height: 25, vx: 3, swinging: true };
+        const baseY = 520;
+        let dropping = false;
+
+        blocks.push({x: 110, y: baseY, width: 180, height: 25, color: '#4A90E2'});
+
+        function drawBackground() {
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, baseY + 25, canvas.width, canvas.height - baseY - 25);
+        }
+
+        function drawBlocks() {
+            blocks.forEach(block => {
+                ctx.fillStyle = block.color || '#FF6B6B';
+                ctx.fillRect(block.x, block.y, block.width, block.height);
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(block.x, block.y, block.width, block.height);
+            });
+        }
+
+        function drawCurrentBlock() {
+            ctx.fillStyle = '#FF6B6B';
+            ctx.fillRect(currentBlock.x, currentBlock.y, currentBlock.width, currentBlock.height);
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(currentBlock.x, currentBlock.y, currentBlock.width, currentBlock.height);
+        }
+
+        function update() {
+            if (isGameOver || dropping) return;
+            if (currentBlock.swinging) {
+                currentBlock.x += currentBlock.vx;
+                if (currentBlock.x <= 40 || currentBlock.x + currentBlock.width >= 360) currentBlock.vx *= -1;
+            }
+            draw();
+        }
+
+        function drop() {
+            if (dropping || isGameOver) return;
+            dropping = true;
+            let dropSpeed = 8;
+            const interval = setInterval(() => {
+                currentBlock.y += dropSpeed;
+                dropSpeed += 0.8;
+                const last = blocks[blocks.length - 1];
+                if (currentBlock.y + currentBlock.height >= last.y) {
+                    if (currentBlock.x + currentBlock.width > last.x && currentBlock.x < last.x + last.width + 10) {
+                        currentBlock.y = last.y - currentBlock.height;
+                        blocks.push(Object.assign({}, currentBlock));
+                        score++;
+                        document.getElementById('score').textContent = score;
+                        currentBlock = {x: 160, y: 80, width: Math.max(80 - score*1.5, 40), height: 25, vx: 3 + score*0.1, swinging: true};
+                        dropping = false;
+                    } else {
+                        isGameOver = true;
+                    }
+                    clearInterval(interval);
+                }
+                draw();
+            }, 16);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawBlocks();
+            if (!dropping) drawCurrentBlock();
+            if (isGameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over!', 200, 250);
+                ctx.fillText(`Torre: ${score} blocos`, 200, 300);
+            }
+        }
+
+        function restartGame() {
+            blocks = [{x: 110, y: baseY, width: 180, height: 25, color: '#4A90E2'}];
+            score = 0;
+            document.getElementById('score').textContent = '0';
+            currentBlock = {x: 160, y: 80, width: 80, height: 25, vx: 3, swinging: true};
+            isGameOver = false;
+            dropping = false;
+            draw();
+        }
+
+        canvas.addEventListener('mousedown', drop);
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); drop(); });
+
+        setInterval(update, 16);
+        draw();
+    </script>
+</body>
+</html>
